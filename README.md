@@ -4,3 +4,6 @@
 2. JWT authentication
 3. error handlers
 4. Mongo db
+
+Link for frontend repo:
+https://github.com/amalexandrescu/capstone-project-FE
