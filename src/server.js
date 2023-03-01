@@ -4,6 +4,13 @@ import mongoose from "mongoose";
 import cors from "cors";
 import listEndpoints from "express-list-endpoints";
 import usersRouter from "./apis/users/index.js";
+import {
+  badRequestHandler,
+  forbiddenHandler,
+  genericErrorHAndler,
+  notFoundHandler,
+  unauthorizedHandler,
+} from "./errorHandlers.js";
 
 const server = express();
 
@@ -33,6 +40,12 @@ server.use(express.json());
 server.use("/users", usersRouter);
 
 //error handlers
+
+server.use(badRequestHandler);
+server.use(unauthorizedHandler);
+server.use(forbiddenHandler);
+server.use(notFoundHandler);
+server.use(genericErrorHAndler);
 
 mongoose.connect(process.env.MONGO_URL);
 
