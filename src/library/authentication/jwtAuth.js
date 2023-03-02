@@ -3,7 +3,7 @@ import { verifyAccessToken } from "./jwtTools.js";
 
 export const JWTAuthMiddleware = async (req, res, next) => {
   if (!req.headers.authorization) {
-    next(createHttpError(401, "Please provide Bearer Token"));
+    // next(createHttpError(401, "Please provide Bearer Token"));
   } else {
     try {
       const accessToken = req.headers.authorization.replace("Bearer ", "");

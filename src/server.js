@@ -11,6 +11,7 @@ import {
   notFoundHandler,
   unauthorizedHandler,
 } from "./errorHandlers.js";
+import cookieParser from "cookie-parser";
 
 const server = express();
 
@@ -31,9 +32,11 @@ const corsOpts = {
       );
     }
   },
+  credentials: true,
 };
 server.use(cors(corsOpts));
 server.use(express.json());
+server.use(cookieParser());
 
 //endpoints
 
