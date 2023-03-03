@@ -2,11 +2,11 @@ import createHttpError from "http-errors";
 import { verifyAccessToken } from "./jwtTools.js";
 
 export const JWTAuthMiddleware = async (req, res, next) => {
-  if (!req.headers.authorization) {
-    // next(createHttpError(401, "Please provide Bearer Token"));
+  if (!req.headers.cookie) {
+    next(createHttpError(401, "Please provide Bearer Token"));
   } else {
     try {
-      const accessToken = req.headers.authorization.replace("Bearer ", "");
+      const accessToken = req.headers.cookie.replace("accessToken=", "");
       const payload = await verifyAccessToken(accessToken);
       console.log(payload);
       req.user = {
