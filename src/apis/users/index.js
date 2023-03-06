@@ -105,7 +105,7 @@ usersRouter.post(
       );
       console.log(updatedUser);
       if (updatedUser) {
-        res.status(204).send(updatedUser);
+        res.status(200).send(updatedUser);
       } else {
         next(createHttpError(404, `User with id ${req.user._id} not found`));
       }
@@ -137,7 +137,7 @@ usersRouter.put("/me", JWTAuthMiddleware, async (req, res, next) => {
         req.body,
         { new: true, runValidators: true }
       );
-      res.status(204).send(updatedUser);
+      res.status(200).send(updatedUser);
     } else {
       next(createHttpError(404, `User with the provided id not found`));
     }
