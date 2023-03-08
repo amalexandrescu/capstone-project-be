@@ -156,11 +156,12 @@ usersRouter.put("/me", JWTAuthMiddleware, async (req, res, next) => {
 usersRouter.get("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
   try {
     const user = await UsersModel.findById(req.user._id).populate({
-      path: "movies",
-      select: "imdbID title",
+      path: "movies.movieId",
+      // select: "imdbID title userRating",
     });
+    // .populate({ path: "movies.userId" });
     if (user) {
-      res.send(user);
+      res.send(user.movies);
     } else {
       next(createHttpError(404, `User with the provided id not found`));
     }
@@ -201,6 +202,11 @@ usersRouter.post("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
         } else {
           //if the index is -1 -> so the user doesn't have this movie
           user.movies.push(searchedMovieMongoId.toString());
+          await UsersModel.findByIdAndUpdate(
+            req.user._id,
+            { $push: { movies: searchedMovieMongoId } },
+            { new: true, runValidators: true }
+          ).populate({ path: "movies", select: "imdbID title" });
           console.log("added");
           res.send(user);
           console.log(user);
@@ -212,7 +218,12 @@ usersRouter.post("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
         const newMovie = new MoviesModel(fetchedMovieData);
         const { _id } = await newMovie.save();
         user.movies.push(_id);
-        res.send({ _id });
+        await UsersModel.findByIdAndUpdate(
+          req.user._id,
+          { $push: { movies: _id } },
+          { new: true, runValidators: true }
+        ).populate({ path: "movies", select: "imdbID title" });
+        res.send(user);
       }
       // res.send("yup");
       // console.log(allMovies);
