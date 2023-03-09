@@ -12,6 +12,7 @@ import {
   unauthorizedHandler,
 } from "./errorHandlers.js";
 import cookieParser from "cookie-parser";
+import moviesRouter from "./apis/movies/index.js";
 
 const server = express();
 
@@ -41,6 +42,7 @@ server.use(cookieParser());
 //endpoints
 
 server.use("/users", usersRouter);
+server.use("/movies", moviesRouter);
 
 //error handlers
 

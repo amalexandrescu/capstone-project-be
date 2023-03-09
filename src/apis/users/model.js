@@ -11,6 +11,12 @@ const usersSchema = new Schema(
     password: { type: String, required: true },
     avatar: { type: String, default: "" },
     role: { type: String, enum: ["user", "admin"], default: "user" },
+    movies: [
+      {
+        watchedMovie: { type: Schema.Types.ObjectId, ref: "Movie" },
+        userRating: { type: Number, default: -1 },
+      },
+    ],
     //if I want to implement google OAuth, then the password won't be required
     //because google doesn't share the password with us when performing OAuth
   },
