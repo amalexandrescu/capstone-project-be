@@ -8,6 +8,7 @@ import { CloudinaryStorage } from "multer-storage-cloudinary";
 import { v2 as cloudinary } from "cloudinary";
 import MoviesModel from "../movies/model.js";
 import { fetchMovieByImdbId } from "../../library/movieHelpers/movieFetch.js";
+import mongoose from "mongoose";
 
 const cloudinaryUploader = multer({
   storage: new CloudinaryStorage({
@@ -156,11 +157,10 @@ usersRouter.put("/me", JWTAuthMiddleware, async (req, res, next) => {
 usersRouter.get("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
   try {
     const user = await UsersModel.findById(req.user._id).populate({
-      path: "movies.movieId",
-      // select: "imdbID title userRating",
+      path: "movies.watchedMovie",
     });
-    // .populate({ path: "movies.userId" });
     if (user) {
+      console.log(user.movies);
       res.send(user.movies);
     } else {
       next(createHttpError(404, `User with the provided id not found`));
@@ -176,59 +176,76 @@ usersRouter.get("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
 //if the movie is in movies array from db, get the movie form there with all the data
 //check if the user.movies has the movie in there (you can use mongo id from above or imdbID from req.body)
 //if it's not there, add the movie in user.movies array (add the mongo id)
+
+//I am sending the mongoId of the movie in the req.body
 usersRouter.post("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
   try {
-    const user = await UsersModel.findById(req.user._id).populate({
-      path: "movies",
-      select: "imdbID title",
-    });
-    console.log("user", user);
+    console.log(req.body);
+    const { movieId } = req.body;
+    const user = await UsersModel.findById(req.user._id)
+      .populate({ path: "movies" })
+      .populate({ path: "movies.watchedMovie" });
+
     if (user) {
-      const { imdbID } = req.body;
-      const searchedMovie = await MoviesModel.findOne({ imdbID: imdbID }); //returns null if no value found
-      // console.log(searchedMovie);
-      if (searchedMovie) {
-        //the movie is alreay in the db
-        const searchedMovieMongoId = searchedMovie._id;
-        console.log("searched movie mongo id: ", searchedMovieMongoId);
-        const index = user.movies.findIndex(
-          (movie) => movie.imdbID.toString() === imdbID.toString()
-        );
-        console.log("index: ", index);
-        if (index !== -1) {
-          //user already has this movie added
-          console.log("user already has this movie added in his list");
-          res.status(204).send();
+      console.log(user);
+      const movies = user.movies;
+      const index = movies.findIndex(
+        (movie) => movie.watchedMovie._id.toString() === movieId
+      );
+      console.log(index);
+      if (index === -1) {
+        const updatedUser = await UsersModel.findByIdAndUpdate(
+          req.user._id,
+          { $push: { movies: { watchedMovie: movieId } } },
+          { new: true, runValidators: true }
+        ).populate({ path: "movies.watchedMovie", select: "imdbID title" });
+        if (updatedUser) {
+          res.status(200).send(updatedUser);
         } else {
-          //if the index is -1 -> so the user doesn't have this movie
-          user.movies.push(searchedMovieMongoId.toString());
-          await UsersModel.findByIdAndUpdate(
-            req.user._id,
-            { $push: { movies: searchedMovieMongoId } },
-            { new: true, runValidators: true }
-          ).populate({ path: "movies", select: "imdbID title" });
-          console.log("added");
-          res.send(user);
-          console.log(user);
+          next(createHttpError(404, `User with id ${req.user._id} not found`));
         }
       } else {
-        //if searchedMovie is null
-        //so the movie is not in the db
-        const fetchedMovieData = await fetchMovieByImdbId(imdbID);
-        const newMovie = new MoviesModel(fetchedMovieData);
-        const { _id } = await newMovie.save();
-        user.movies.push(_id);
-        await UsersModel.findByIdAndUpdate(
-          req.user._id,
-          { $push: { movies: _id } },
-          { new: true, runValidators: true }
-        ).populate({ path: "movies", select: "imdbID title" });
-        res.send(user);
+        res.status(204).send();
       }
-      // res.send("yup");
-      // console.log(allMovies);
+    }
+  } catch (error) {
+    console.log("la naiba");
+    next(error);
+  }
+});
+
+//I am sending the imdbID in the req.body
+usersRouter.put("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
+  try {
+    const { imdbID } = req.body;
+    const user = await UsersModel.findById(req.user._id)
+      .populate({ path: "movies" })
+      .populate({ path: "movies.watchedMovie" });
+
+    if (user) {
+      const index = user.movies.findIndex(
+        (m) => m.watchedMovie.imdbID === imdbID
+      );
+      if (index !== -1) {
+        const filteredArray = user.movies.filter(
+          (m) => m.watchedMovie.imdbID !== imdbID
+        );
+
+        const updatedUser = await UsersModel.findByIdAndUpdate(
+          req.user._id,
+          { movies: filteredArray },
+          { new: true }
+        )
+          .populate({ path: "movies" })
+          .populate({ path: "movies.watchedMovie" });
+
+        res.send(updatedUser);
+      } else {
+        // res.status(204).send();
+        next(createHttpError(400, "there is no such a movie for this user"));
+      }
     } else {
-      next(createHttpError(404, `User with the provided id not found`));
+      next(createHttpError(404, `User with id ${req.user._id} not found!`));
     }
   } catch (error) {
     next(error);
