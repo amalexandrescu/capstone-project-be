@@ -9,6 +9,7 @@ import { v2 as cloudinary } from "cloudinary";
 import MoviesModel from "../movies/model.js";
 import { fetchMovieByImdbId } from "../../library/movieHelpers/movieFetch.js";
 import mongoose from "mongoose";
+import { ObjectId } from "bson";
 
 const cloudinaryUploader = multer({
   storage: new CloudinaryStorage({
@@ -178,6 +179,7 @@ usersRouter.get("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
 //if it's not there, add the movie in user.movies array (add the mongo id)
 
 //I am sending the mongoId of the movie in the req.body
+//add this movie to watchedMovies of a user if it is not there
 usersRouter.post("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
   try {
     console.log(req.body);
@@ -209,12 +211,13 @@ usersRouter.post("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
       }
     }
   } catch (error) {
-    console.log("la naiba");
+    console.log(error);
     next(error);
   }
 });
 
 //I am sending the imdbID in the req.body
+//endpoint for removing a movie from a user movies array
 usersRouter.put("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
   try {
     const { imdbID } = req.body;
@@ -251,5 +254,54 @@ usersRouter.put("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
     next(error);
   }
 });
+
+//endpoint for changing the rate of a movie for the logged in user
+
+usersRouter.put(
+  "/me/movies/rating",
+  JWTAuthMiddleware,
+  async (req, res, next) => {
+    try {
+      const { mongoId } = req.body;
+      const { newRating } = req.body;
+      console.log("___________", newRating);
+      const user = await UsersModel.findById({
+        _id: req.user._id,
+      }).populate("movies");
+
+      if (user) {
+        const index = user.movies.findIndex(
+          (m) => m.watchedMovie.toString() === mongoId
+        );
+        if (index !== -1) {
+          //so the movie is there
+          const movies = user.movies;
+
+          movies[index].userRating = newRating;
+
+          // const updatedRating = user.movies.map((m) => {
+          //   if (m.watchedMovie.toString() === mongoId) {
+          //     m.userRating = newRating;
+          //   }
+          // });
+
+          const updatedUser = await UsersModel.findByIdAndUpdate(
+            req.user._id,
+            { movies: movies },
+            { new: true }
+          ).populate({ path: "movies" });
+          res.send(updatedUser);
+        } else {
+          console.log("movie is not added yet");
+        }
+
+        // res.send({ index });
+      }
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
+  }
+);
 
 export default usersRouter;
