@@ -157,9 +157,11 @@ usersRouter.put("/me", JWTAuthMiddleware, async (req, res, next) => {
 
 usersRouter.get("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
   try {
-    const user = await UsersModel.findById(req.user._id).populate({
-      path: "movies.watchedMovie",
-    });
+    const user = await UsersModel.findById(req.user._id)
+      .populate("movies")
+      .populate({
+        path: "movies.watchedMovie",
+      });
     if (user) {
       console.log(user.movies);
       res.send(user.movies);
