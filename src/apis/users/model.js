@@ -10,11 +10,22 @@ const usersSchema = new Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     avatar: { type: String, default: "" },
+    cover: { type: String, default: "" },
     role: { type: String, enum: ["user", "admin"], default: "user" },
     movies: [
       {
         watchedMovie: { type: Schema.Types.ObjectId, ref: "Movie" },
-        userRating: { type: Number, default: -1 },
+        userRating: { type: Number, default: -1, min: -1, max: 10 },
+      },
+    ],
+    friends: [
+      {
+        friend: { type: Schema.Types.ObjectId, ref: "User" },
+        status: {
+          type: String,
+          default: false,
+          enum: ["false", "true", "pending"],
+        },
       },
     ],
     //if I want to implement google OAuth, then the password won't be required

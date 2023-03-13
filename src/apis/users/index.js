@@ -21,6 +21,16 @@ const cloudinaryUploader = multer({
   }),
 }).single("avatar");
 
+const cloudinaryUploaderCover = multer({
+  storage: new CloudinaryStorage({
+    cloudinary,
+    params: {
+      format: "jpeg",
+      folder: "capstone-project",
+    },
+  }),
+}).single("cover");
+
 const usersRouter = express.Router();
 
 usersRouter.post("/register", async (req, res, next) => {
@@ -70,7 +80,9 @@ usersRouter.post("/login", async (req, res, next) => {
 
 usersRouter.get("/", async (req, res, next) => {
   try {
-    const users = await UsersModel.find();
+    const users = await UsersModel.find()
+      .populate({ path: "movies" })
+      .populate({ path: "movies.watchedMovie" });
 
     res.send(users);
   } catch (error) {
@@ -124,7 +136,9 @@ usersRouter.post(
 
 usersRouter.get("/:userId", async (req, res, next) => {
   try {
-    const user = await UsersModel.findById(req.params.userId);
+    const user = await UsersModel.findById(req.params.userId)
+      .populate("movies")
+      .populate("movies.watchedMovie");
     if (user) {
       res.send(user);
     } else {
@@ -301,6 +315,33 @@ usersRouter.put(
       }
     } catch (error) {
       console.log(error);
+      next(error);
+    }
+  }
+);
+
+usersRouter.post(
+  "/me/cover",
+  JWTAuthMiddleware,
+  cloudinaryUploaderCover,
+  async (req, res, next) => {
+    try {
+      //we get from req.body the picture we want to upload
+      console.log("ID: ", req.user._id);
+      const url = req.file.path;
+      console.log("URL", url);
+      const updatedUser = await UsersModel.findByIdAndUpdate(
+        req.user._id,
+        { cover: url },
+        { new: true, runValidators: true }
+      );
+      console.log(updatedUser);
+      if (updatedUser) {
+        res.status(200).send(updatedUser);
+      } else {
+        next(createHttpError(404, `User with id ${req.user._id} not found`));
+      }
+    } catch (error) {
       next(error);
     }
   }
