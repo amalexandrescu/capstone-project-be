@@ -21,6 +21,16 @@ const cloudinaryUploader = multer({
   }),
 }).single("avatar");
 
+const cloudinaryUploaderCover = multer({
+  storage: new CloudinaryStorage({
+    cloudinary,
+    params: {
+      format: "jpeg",
+      folder: "capstone-project",
+    },
+  }),
+}).single("cover");
+
 const usersRouter = express.Router();
 
 usersRouter.post("/register", async (req, res, next) => {
@@ -70,7 +80,9 @@ usersRouter.post("/login", async (req, res, next) => {
 
 usersRouter.get("/", async (req, res, next) => {
   try {
-    const users = await UsersModel.find();
+    const users = await UsersModel.find()
+      .populate({ path: "movies" })
+      .populate({ path: "movies.watchedMovie" });
 
     res.send(users);
   } catch (error) {
@@ -84,6 +96,7 @@ usersRouter.get("/me/profile", JWTAuthMiddleware, async (req, res, next) => {
       path: "movies",
       select: "imdbID title",
     });
+
     // console.log({ user });
     if (user) {
       res.send(user);
@@ -124,7 +137,9 @@ usersRouter.post(
 
 usersRouter.get("/:userId", async (req, res, next) => {
   try {
-    const user = await UsersModel.findById(req.params.userId);
+    const user = await UsersModel.findById(req.params.userId)
+      .populate("movies")
+      .populate("movies.watchedMovie");
     if (user) {
       res.send(user);
     } else {
@@ -164,7 +179,11 @@ usersRouter.get("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
       });
     if (user) {
       console.log(user.movies);
-      res.send(user.movies);
+      const movies = user.movies;
+      movies.sort((a, b) => {
+        return parseInt(b.userRating) - parseInt(a.userRating);
+      });
+      res.send(movies);
     } else {
       next(createHttpError(404, `User with the provided id not found`));
     }
@@ -281,12 +300,6 @@ usersRouter.put(
 
           movies[index].userRating = newRating;
 
-          // const updatedRating = user.movies.map((m) => {
-          //   if (m.watchedMovie.toString() === mongoId) {
-          //     m.userRating = newRating;
-          //   }
-          // });
-
           const updatedUser = await UsersModel.findByIdAndUpdate(
             req.user._id,
             { movies: movies },
@@ -296,11 +309,151 @@ usersRouter.put(
         } else {
           console.log("movie is not added yet");
         }
-
-        // res.send({ index });
       }
     } catch (error) {
       console.log(error);
+      next(error);
+    }
+  }
+);
+
+usersRouter.post(
+  "/me/cover",
+  JWTAuthMiddleware,
+  cloudinaryUploaderCover,
+  async (req, res, next) => {
+    try {
+      //we get from req.body the picture we want to upload
+      console.log("ID: ", req.user._id);
+      const url = req.file.path;
+      console.log("URL", url);
+      const updatedUser = await UsersModel.findByIdAndUpdate(
+        req.user._id,
+        { cover: url },
+        { new: true, runValidators: true }
+      );
+      console.log(updatedUser);
+      if (updatedUser) {
+        res.status(200).send(updatedUser);
+      } else {
+        next(createHttpError(404, `User with id ${req.user._id} not found`));
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+//endpoint for adding a friend for a user
+usersRouter.post("/me/friends", JWTAuthMiddleware, async (req, res, next) => {
+  try {
+    const user = await UsersModel.findById(req.user._id).populate({
+      path: "friends",
+    });
+
+    if (user) {
+      const { friendId } = req.body;
+      const friends = user.friends;
+      const index = friends.findIndex(
+        (f) => f.friend._id.toString() === friendId
+      );
+
+      if (index === -1) {
+        //this means that the user doesn't have this friend
+        //so we need to add it
+        const updatedUser = await UsersModel.findByIdAndUpdate(
+          req.user._id,
+          { $push: { friends: { friend: friendId } } },
+          { new: true, runValidators: true }
+        ).populate({ path: "friends" });
+
+        if (updatedUser) {
+          res.status(201).send(updatedUser);
+        } else {
+          next(createHttpError(404, `User with id ${req.user._id} not found`));
+        }
+      }
+
+      res.status(204).send();
+    }
+
+    //in the req.body we are sending the friendId
+  } catch (error) {
+    next(error);
+  }
+});
+
+usersRouter.put("/me/friends", JWTAuthMiddleware, async (req, res, next) => {
+  try {
+    const user = await UsersModel.findById(req.user._id).populate({
+      path: "friends",
+    });
+    if (user) {
+      console.log("_____________________", user.friends);
+      const friends = user.friends;
+      const { friendId } = req.body;
+      const index = friends
+        .findIndex((f) => f.friend.toString() === friendId.toString())
+        .toString();
+
+      if (index !== -1) {
+        //so they are friends, we can update it by deleting it
+        const filteredArray = friends.filter(
+          (f) => f.friend.toString() !== friendId.toString()
+        );
+
+        const updatedUser = await UsersModel.findByIdAndUpdate(
+          req.user._id,
+          { friends: filteredArray },
+          { new: true }
+        ).populate({ path: "friends" });
+        res.send(updatedUser);
+      } else {
+        // res.status(204).send();
+        next(createHttpError(400, "there is no such a friend for this user"));
+      }
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+usersRouter.get("/me/friends", JWTAuthMiddleware, async (req, res, next) => {
+  try {
+    const user = await UsersModel.findById(req.user)
+      .populate({
+        path: "friends.friend",
+      })
+      .populate({ path: "movies.watchedMovie" })
+      .populate({ path: "friends.friend.movies.watchedMovie" });
+
+    if (user) {
+      res.send(user.friends);
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+usersRouter.get(
+  "/me/friends/:friendId",
+  JWTAuthMiddleware,
+  async (req, res, next) => {
+    try {
+      // const { friendId } = req.body;
+      const user = await UsersModel.findById(req.params.friendId).populate({
+        path: "movies.watchedMovie",
+      });
+      // .populate({
+      //   path: "friends.friend",
+      // })
+      // .populate({ path: "movies.watchedMovie" })
+      // .populate({ path: "friends.friend.movies.watchedMovie" });
+
+      if (user) {
+        res.send(user);
+      }
+    } catch (error) {
       next(error);
     }
   }
