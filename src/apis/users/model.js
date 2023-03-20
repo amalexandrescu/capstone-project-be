@@ -17,15 +17,11 @@ const usersSchema = new Schema(
         watchedMovie: { type: Schema.Types.ObjectId, ref: "Movie" },
         userRating: { type: Number, default: -1, min: -1, max: 10 },
       },
+      { timestamps: true },
     ],
     friends: [
       {
         friend: { type: Schema.Types.ObjectId, ref: "User" },
-        status: {
-          type: String,
-          default: false,
-          enum: ["false", "true", "pending"],
-        },
       },
     ],
     //if I want to implement google OAuth, then the password won't be required
