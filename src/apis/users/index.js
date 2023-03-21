@@ -10,6 +10,7 @@ import MoviesModel from "../movies/model.js";
 import { fetchMovieByImdbId } from "../../library/movieHelpers/movieFetch.js";
 import mongoose from "mongoose";
 import { ObjectId } from "bson";
+import q2m from "query-to-mongo";
 
 const cloudinaryUploader = multer({
   storage: new CloudinaryStorage({
@@ -453,6 +454,151 @@ usersRouter.get(
       if (user) {
         res.send(user);
       }
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+usersRouter.get(
+  "/movies/discover",
+  JWTAuthMiddleware,
+  async (req, res, next) => {
+    try {
+      const mongoQuery = q2m(req.query);
+      console.log(mongoQuery);
+      const user = await UsersModel.findById(req.user._id).populate({
+        path: "friends.friend",
+      });
+      // .aggregate([
+      //   // Lookup the movies for each friend
+      //   {
+      //     $lookup: {
+      //       from: "movies",
+      //       localField: "friends.movies.watchedMovie",
+      //       foreignField: "_id",
+      //       as: "movies",
+      //     },
+      //   },
+
+      //   // Unwind the movies array
+      //   { $unwind: "$movies" },
+      // ]);
+
+      // const testUser = await UsersModel.aggregate([
+      //   // Match the user you want to retrieve movies for
+      //   { $match: { _id: new mongoose.Types.ObjectId(req.user._id) } },
+
+      //   // Lookup the user's friends
+      //   {
+      //     $lookup: {
+      //       from: "users",
+      //       localField: "friends.friend",
+      //       foreignField: "_id",
+      //       as: "friends",
+      //     },
+      //   },
+
+      //   // Unwind the friends array
+      //   { $unwind: "$friends" },
+
+      //   { $replaceRoot: { newRoot: "$friends" } },
+
+      //   // Lookup the movies for each friend
+      //   {
+      //     $lookup: {
+      //       from: "movies",
+      //       localField: "movies.watchedMovie",
+      //       foreignField: "_id",
+      //       as: "movies",
+      //     },
+      //   },
+
+      //   // Unwind the movies array
+      //   // { $unwind: "$movies" },
+      //   // {
+      //   //   $addFields: {
+      //   //     imdbRatingInt: { $toDecimal: "movies.imdbRating", onError: -1 },
+      //   //   },
+      //   // },
+      //   // {
+      //   //   $project: {
+      //   //     imdbRatingNumber: {
+      //   //       $convert: {
+      //   //         input: "movies.imdbRating",
+      //   //         to: "double",
+      //   //         onError: -1,
+      //   //       },
+      //   //     },
+      //   //   },
+      //   // },
+      //   // {
+      //   //   $match: {
+      //   //     firstName: "test",
+      //   //   },
+      //   // },
+      //   // {
+      //   //   $match: {
+      //   //     "movies.imdbRating": { $lte: -100 },
+      //   //   },
+      //   // },
+
+      //   // Group the movies by _id to remove duplicates
+      //   // { $group: {
+      //   //   _id: "$movies._id",
+      //   //   title: { $first: "$movies.title" },
+      //   //   director: { $first: "$movies.director" }
+      //   // }},
+
+      //   // Project only the fields we want to return
+      //   // { $project: {
+      //   //   _id: 0,
+      //   //   title: 1,
+      //   //   director: 1
+      //   // }}
+      // ]); // const filteredArray = user.filter(
+      // //   (user) => parseInt(user.movies.userRating) === -1
+      // // );
+
+      // console.log(result);
+      const moviesWithFriends = user.friends
+        .map((friend) => friend.friend)
+        .map((friend) => {
+          return friend.movies.map((movie) => {
+            return {
+              movie,
+              friendInfo: friend,
+            };
+          });
+        })
+        .flat();
+
+      const requiredMovieIds = moviesWithFriends.map(
+        (movie) => movie.movie.watchedMovie
+      );
+
+      const moviesData = await MoviesModel.find({
+        _id: { $in: requiredMovieIds },
+      });
+
+      const result = moviesWithFriends.map((movie) => {
+        console.log(
+          "Finding",
+          movie.movie.watchedMovie.toString(),
+          moviesData[0]._id
+        );
+        const movieData = moviesData.find(
+          (richMovie) =>
+            richMovie._id.toString() === movie.movie.watchedMovie.toString()
+        );
+        console.log("Movie", movieData);
+        return {
+          ...movie,
+          movieData,
+        };
+      });
+
+      res.send(result);
     } catch (error) {
       next(error);
     }
