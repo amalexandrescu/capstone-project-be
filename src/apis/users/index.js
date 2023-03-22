@@ -441,15 +441,9 @@ usersRouter.get(
   JWTAuthMiddleware,
   async (req, res, next) => {
     try {
-      // const { friendId } = req.body;
       const user = await UsersModel.findById(req.params.friendId).populate({
         path: "movies.watchedMovie",
       });
-      // .populate({
-      //   path: "friends.friend",
-      // })
-      // .populate({ path: "movies.watchedMovie" })
-      // .populate({ path: "friends.friend.movies.watchedMovie" });
 
       if (user) {
         res.send(user);
@@ -465,102 +459,12 @@ usersRouter.get(
   JWTAuthMiddleware,
   async (req, res, next) => {
     try {
-      const mongoQuery = q2m(req.query);
-      console.log(mongoQuery);
+      // const mongoQuery = q2m(req.query);
+      // console.log(mongoQuery);
       const user = await UsersModel.findById(req.user._id).populate({
         path: "friends.friend",
       });
-      // .aggregate([
-      //   // Lookup the movies for each friend
-      //   {
-      //     $lookup: {
-      //       from: "movies",
-      //       localField: "friends.movies.watchedMovie",
-      //       foreignField: "_id",
-      //       as: "movies",
-      //     },
-      //   },
 
-      //   // Unwind the movies array
-      //   { $unwind: "$movies" },
-      // ]);
-
-      // const testUser = await UsersModel.aggregate([
-      //   // Match the user you want to retrieve movies for
-      //   { $match: { _id: new mongoose.Types.ObjectId(req.user._id) } },
-
-      //   // Lookup the user's friends
-      //   {
-      //     $lookup: {
-      //       from: "users",
-      //       localField: "friends.friend",
-      //       foreignField: "_id",
-      //       as: "friends",
-      //     },
-      //   },
-
-      //   // Unwind the friends array
-      //   { $unwind: "$friends" },
-
-      //   { $replaceRoot: { newRoot: "$friends" } },
-
-      //   // Lookup the movies for each friend
-      //   {
-      //     $lookup: {
-      //       from: "movies",
-      //       localField: "movies.watchedMovie",
-      //       foreignField: "_id",
-      //       as: "movies",
-      //     },
-      //   },
-
-      //   // Unwind the movies array
-      //   // { $unwind: "$movies" },
-      //   // {
-      //   //   $addFields: {
-      //   //     imdbRatingInt: { $toDecimal: "movies.imdbRating", onError: -1 },
-      //   //   },
-      //   // },
-      //   // {
-      //   //   $project: {
-      //   //     imdbRatingNumber: {
-      //   //       $convert: {
-      //   //         input: "movies.imdbRating",
-      //   //         to: "double",
-      //   //         onError: -1,
-      //   //       },
-      //   //     },
-      //   //   },
-      //   // },
-      //   // {
-      //   //   $match: {
-      //   //     firstName: "test",
-      //   //   },
-      //   // },
-      //   // {
-      //   //   $match: {
-      //   //     "movies.imdbRating": { $lte: -100 },
-      //   //   },
-      //   // },
-
-      //   // Group the movies by _id to remove duplicates
-      //   // { $group: {
-      //   //   _id: "$movies._id",
-      //   //   title: { $first: "$movies.title" },
-      //   //   director: { $first: "$movies.director" }
-      //   // }},
-
-      //   // Project only the fields we want to return
-      //   // { $project: {
-      //   //   _id: 0,
-      //   //   title: 1,
-      //   //   director: 1
-      //   // }}
-      // ]); // const filteredArray = user.filter(
-      // //   (user) => parseInt(user.movies.userRating) === -1
-      // // );
-
-      // console.log(result);
       const moviesWithFriends = user.friends
         .map((friend) => friend.friend)
         .map((friend) => {
@@ -604,5 +508,22 @@ usersRouter.get(
     }
   }
 );
+
+usersRouter.put("/me/logout", JWTAuthMiddleware, async (req, res, next) => {
+  try {
+    console.log(req.headers.origin, "PUT user logout at:", new Date());
+    const user = await UsersModel.findById(req.user._id);
+    if (user) {
+      const userObj = user.toObject();
+      res.clearCookie("accessToken");
+      res.status(200).send({ message: `${userObj.username} logged out` });
+    } else {
+      next(createHttpError(404, "User not found"));
+    }
+  } catch (error) {
+    console.log("error put logout me");
+    next(error);
+  }
+});
 
 export default usersRouter;
