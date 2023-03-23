@@ -21,11 +21,11 @@ moviesRouter.post("/", JWTAuthMiddleware, async (req, res, next) => {
     const index = movies.findIndex((movie) => movie.imdbID === newMovie.imdbID);
     if (index === -1) {
       // res.cookie("accessToken", accessToken, { httpOnly: true });
-      res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        sameSite: "None",
-        secure: true,
-      });
+      // res.cookie("accessToken", accessToken, {
+      //   httpOnly: true,
+      //   sameSite: "None",
+      //   secure: true,
+      // });
       await newMovie.save();
       res.status(201).send({ movie: newMovie });
     } else {
