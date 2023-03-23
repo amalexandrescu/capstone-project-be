@@ -50,7 +50,7 @@ server.get("/omdb/:imdbId", async (req, res, next) => {
     const imdbId = req.params.imdbId;
     const omdbApiKey = process.env.OMDB_API_KEY;
     const response = await fetch(
-      `http://www.omdbapi.com/?i=${imdbId}&type=movie&plot=full&apikey=${omdbApiKey}`
+      `https://www.omdbapi.com/?i=${imdbId}&type=movie&plot=full&apikey=${omdbApiKey}`
     );
     const result = await response.json();
     res.send(result);
@@ -59,6 +59,26 @@ server.get("/omdb/:imdbId", async (req, res, next) => {
     next(error);
   }
 });
+
+// server.get("/omdb/queriedMovie", async (req, res, next) => {
+//   try {
+
+//     const omdbApiKey = process.env.OMDB_API_KEY;
+//     const response = await fetch(
+//       `https://www.omdbapi.com/?s=${query}&type=movie&apikey=${omdbApiKey}`
+//     );
+//     const movie = await response.json();
+
+//     if (movie.Search.length < 10) {
+//       res.send(movie.Search);
+//     } else {
+//       res.send(movie.Search.slice(0, 10));
+//     }
+//   } catch (error) {
+//     console.log("cannot fetch from omdb api by query");
+//     next(error);
+//   }
+// });
 
 //error handlers
 
