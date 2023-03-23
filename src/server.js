@@ -45,6 +45,21 @@ server.use(cookieParser());
 server.use("/users", usersRouter);
 server.use("/movies", moviesRouter);
 
+server.get("/omdb/:imdbId", async (req, res, next) => {
+  try {
+    const imdbId = req.params.imdbId;
+    const omdbApiKey = process.env.OMDB_API_KEY;
+    const response = await fetch(
+      `http://www.omdbapi.com/?i=${imdbId}&type=movie&plot=full&apikey=${omdbApiKey}`
+    );
+    const result = await response.json();
+    res.send(result);
+  } catch (error) {
+    console.log("cannot fetch from omdb api");
+    next(error);
+  }
+});
+
 //error handlers
 
 server.use(badRequestHandler);
