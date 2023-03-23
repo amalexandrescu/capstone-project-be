@@ -50,7 +50,7 @@ server.get("/omdb/:imdbId", async (req, res, next) => {
     const imdbId = req.params.imdbId;
     const omdbApiKey = process.env.OMDB_API_KEY;
     const response = await fetch(
-      `https://www.omdbapi.com/?i=${imdbId}&type=movie&plot=full&apikey=${omdbApiKey}`
+      `http://www.omdbapi.com/?i=${imdbId}&type=movie&plot=full&apikey=${omdbApiKey}`
     );
     const result = await response.json();
     res.send(result);
