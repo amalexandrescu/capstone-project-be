@@ -35,6 +35,17 @@ const corsOpts = {
   },
   credentials: true,
 };
+
+server.use(
+  cors({
+    origin: [
+      "https://capstone-project-kueky3e95-amalexandrescu.vercel.app",
+      "http://localhost:3000",
+    ],
+    credentials: true,
+  })
+);
+
 server.use(cors(corsOpts));
 server.use(express.json());
 server.use(cookieParser());
