@@ -52,7 +52,11 @@ usersRouter.post("/register", async (req, res, next) => {
       const payload = { _id: newUser._id, role: newUser.role };
 
       const accessToken = await createAccessToken(payload);
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        sameSite: "None",
+        secure: true,
+      });
       res.status(201).send({ user: newUser });
       // res.status(201).send();
     }
@@ -68,7 +72,11 @@ usersRouter.post("/login", async (req, res, next) => {
     if (user) {
       const payload = { _id: user._id };
       const accessToken = await createAccessToken(payload);
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        sameSite: "None",
+        secure: true,
+      });
       res.send({ accessToken });
     } else {
       next(createHttpError(401, "Credentials are not OK!"));
@@ -100,7 +108,7 @@ usersRouter.get("/me/profile", JWTAuthMiddleware, async (req, res, next) => {
 
     // console.log({ user });
     if (user) {
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      // res.cookie("accessToken", accessToken, { httpOnly: true });
       res.send(user);
     } else {
       next(createHttpError(404, `User with provided id not found`));
@@ -124,7 +132,7 @@ usersRouter.post(
         { avatar: url },
         { new: true, runValidators: true }
       );
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      // res.cookie("accessToken", accessToken, { httpOnly: true });
       console.log(updatedUser);
       if (updatedUser) {
         res.status(200).send(updatedUser);
@@ -161,7 +169,7 @@ usersRouter.put("/me", JWTAuthMiddleware, async (req, res, next) => {
         req.body,
         { new: true, runValidators: true }
       );
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      // res.cookie("accessToken", accessToken, { httpOnly: true });
       res.status(200).send(updatedUser);
     } else {
       next(createHttpError(404, `User with the provided id not found`));
@@ -181,7 +189,7 @@ usersRouter.get("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
         path: "movies.watchedMovie",
       });
     if (user) {
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      // res.cookie("accessToken", accessToken, { httpOnly: true });
       console.log(user.movies);
       const movies = user.movies;
       movies.sort((a, b) => {
@@ -214,7 +222,7 @@ usersRouter.post("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
       .populate({ path: "movies.watchedMovie" });
 
     if (user) {
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      // res.cookie("accessToken", accessToken, { httpOnly: true });
       console.log(user);
       const movies = user.movies;
       const index = movies.findIndex(
@@ -252,7 +260,7 @@ usersRouter.put("/me/movies", JWTAuthMiddleware, async (req, res, next) => {
       .populate({ path: "movies.watchedMovie" });
 
     if (user) {
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      // res.cookie("accessToken", accessToken, { httpOnly: true });
       const index = user.movies.findIndex(
         (m) => m.watchedMovie.imdbID === imdbID
       );
@@ -297,7 +305,7 @@ usersRouter.put(
       }).populate("movies");
 
       if (user) {
-        res.cookie("accessToken", accessToken, { httpOnly: true });
+        // res.cookie("accessToken", accessToken, { httpOnly: true });
         const index = user.movies.findIndex(
           (m) => m.watchedMovie.toString() === mongoId
         );
@@ -341,7 +349,7 @@ usersRouter.post(
       );
       console.log(updatedUser);
       if (updatedUser) {
-        res.cookie("accessToken", accessToken, { httpOnly: true });
+        // res.cookie("accessToken", accessToken, { httpOnly: true });
         res.status(200).send(updatedUser);
       } else {
         next(createHttpError(404, `User with id ${req.user._id} not found`));
@@ -360,7 +368,7 @@ usersRouter.post("/me/friends", JWTAuthMiddleware, async (req, res, next) => {
     });
 
     if (user) {
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      // res.cookie("accessToken", accessToken, { httpOnly: true });
       const { friendId } = req.body;
       const friends = user.friends;
       const index = friends.findIndex(
@@ -398,7 +406,7 @@ usersRouter.put("/me/friends", JWTAuthMiddleware, async (req, res, next) => {
       path: "friends",
     });
     if (user) {
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      // res.cookie("accessToken", accessToken, { httpOnly: true });
       console.log("_____________________", user.friends);
       const friends = user.friends;
       const { friendId } = req.body;
@@ -438,7 +446,7 @@ usersRouter.get("/me/friends", JWTAuthMiddleware, async (req, res, next) => {
       .populate({ path: "friends.friend.movies.watchedMovie" });
 
     if (user) {
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      // res.cookie("accessToken", accessToken, { httpOnly: true });
       res.send(user.friends);
     }
   } catch (error) {
@@ -456,7 +464,7 @@ usersRouter.get(
       });
 
       if (user) {
-        res.cookie("accessToken", accessToken, { httpOnly: true });
+        // res.cookie("accessToken", accessToken, { httpOnly: true });
         res.send(user);
       }
     } catch (error) {
@@ -512,7 +520,7 @@ usersRouter.get(
           movieData,
         };
       });
-      res.cookie("accessToken", accessToken, { httpOnly: true });
+      // res.cookie("accessToken", accessToken, { httpOnly: true });
       res.send(result);
     } catch (error) {
       next(error);
