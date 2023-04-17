@@ -526,4 +526,26 @@ usersRouter.put("/me/logout", JWTAuthMiddleware, async (req, res, next) => {
   }
 });
 
+usersRouter.get("/movies/:friendId", async (req, res, next) => {
+  try {
+    const user = await UsersModel.findById(req.params.friendId)
+      .populate("movies")
+      .populate({
+        path: "movies.watchedMovie",
+      });
+    if (user) {
+      console.log(user.movies);
+      const movies = user.movies;
+      movies.sort((a, b) => {
+        return parseInt(b.userRating) - parseInt(a.userRating);
+      });
+      res.send(movies);
+    } else {
+      next(createHttpError(404, `User with the provided id not found`));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default usersRouter;
